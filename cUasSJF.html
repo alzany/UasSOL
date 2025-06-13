@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SJF (Shortest Job First) Scheduler</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(45deg, #2c3e50, #3498db);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .student-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            padding: 30px;
+            background: #f8f9fa;
+        }
+        
+        .student-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-left: 5px solid #3498db;
+            transition: transform 0.3s ease;
+        }
+        
+        .student-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .student-card h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            padding: 5px 0;
+        }
+        
+        .info-label {
+            font-weight: bold;
+            color: #555;
+        }
+        
+        .info-value {
+            color: #333;
+        }
+        
+        .sjf-section {
+            padding: 40px;
+        }
+        
+        .sjf-title {
+            text-align: center;
+            color: #2c3e50;
+            font-size: 2em;
+            margin-bottom: 30px;
+        }
+        
+        .input-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+        }
+        
+        .input-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .input-field {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .input-field label {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #555;
+        }
+        
+        .input-field input {
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+        
+        .input-field input:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
+        
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+        
+        .process-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .process-table th,
+        .process-table td {
+            padding: 15px;
+            text-align: center;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .process-table th {
+            background: #34495e;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .process-table tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .gantt-chart {
+            margin: 30px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 12px;
+        }
+        
+        .gantt-title {
+            text-align: center;
+            font-size: 1.5em;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        
+        .gantt-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2px;
+            justify-content: center;
+        }
+        
+        .gantt-block {
+            padding: 15px;
+            color: white;
+            font-weight: bold;
+            text-align: center;
+            border-radius: 5px;
+            min-width: 80px;
+            position: relative;
+        }
+        
+        .results {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        
+        .result-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .result-card h4 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        
+        .result-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #3498db;
+        }
+        
+        .algorithm-info {
+            background: #e8f4f8;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            border-left: 5px solid #3498db;
+        }
+        
+        .algorithm-info h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+        
+        .algorithm-info p {
+            color: #555;
+            line-height: 1.6;
+        }
+        
+        @media (max-width: 768px) {
+            .student-info {
+                grid-template-columns: 1fr;
+            }
+            
+            .input-group {
+                grid-template-columns: 1fr;
+            }
+            
+            .btn-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 UAS SISTEM OPERASI LANJUT</h1>
+            <p>Shortest Job First - CPU Scheduling Algoritma</p>
+        </div>
+        
+        <div class="student-info">
+            <div class="student-card">
+                <h3>👨‍🎓 Mahasiswa 1</h3>
+                <div class="info-row">
+                    <span class="info-label">Nama:</span>
+                    <span class="info-value">Desi Alzany</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">NIM:</span>
+                    <span class="info-value">11240013</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Kelas:</span>
+                    <span class="info-value">TI-IF 2.A</span>
+                </div>
+            </div>
+            
+            <div class="student-card">
+                <h3>👩‍🎓 Mahasiswa 2</h3>
+                <div class="info-row">
+                    <span class="info-label">Nama:</span>
+                    <span class="info-value">Ihban Muhammad Rayyan</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">NIM:</span>
+                    <span class="info-value">11240081</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Kelas:</span>
+                    <span class="info-value">TI-IF 2.A</span>
+                    </div>
+            </div>
+            
+            <div class="student-card">
+                <h4>👩‍🎓 Mahasiswa 3</h4>
+                <div class="info-row">
+                    <span class="info-label">Nama:</span>
+                    <span class="info-value">Mohammad Ikbal</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">NIM:</span>
+                    <span class="info-value">11240080</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Kelas:</span>
+                    <span class="info-value">TI-IF 2.A</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="sjf-section">
+            <h2 class="sjf-title">⚙️ UAS SISTEM OPERASI LANJUT - SJF</h2>
+            
+           
+            <div class="input-section">
+                <div class="input-group">
+                    <div class="input-field">
+                        <label for="processName">Nama Process</label>
+                        <input type="text" id="processName" placeholder="Contoh: P1, P2, P3...">
+                    </div>
+                    
+                    <div class="input-field">
+                        <label for="arrivalTime">Arrival Time</label>
+                        <input type="number" id="arrivalTime" placeholder="0" min="0">
+                    </div>
+                    
+                    <div class="input-field">
+                        <label for="burstTime">Burst Time</label>
+                        <input type="number" id="burstTime" placeholder="1" min="1">
+                    </div>
+                </div>
+                
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="addProcess()">➕ Tambah Process</button>
+                    <button class="btn btn-secondary" onclick="calculateSJF()">🔄 Hitung SJF</button>
+                    <button class="btn btn-danger" onclick="clearAll()">🗑️ Hapus Semua</button>
+                </div>
+            </div>
+            
+            <div id="processTableContainer"></div>
+            <div id="ganttChart"></div>
+            <div id="results"></div>
+        </div>
+    </div>
+
+    <script>
+        let processes = [];
+        let processCounter = 1;
+        
+        // Warna untuk Gantt Chart
+        const colors = ['#3498db', '#e74c3c', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22', '#34495e'];
+        
+        function addProcess() {
+            const name = document.getElementById('processName').value || `P${processCounter}`;
+            const arrivalTime = parseInt(document.getElementById('arrivalTime').value) || 0;
+            const burstTime = parseInt(document.getElementById('burstTime').value) || 1;
+            
+            if (burstTime <= 0) {
+                alert('Burst time harus lebih besar dari 0!');
+                return;
+            }
+            
+            const process = {
+                id: processCounter,
+                name: name,
+                arrivalTime: arrivalTime,
+                burstTime: burstTime,
+                waitingTime: 0,
+                turnaroundTime: 0,
+                completionTime: 0
+            };
+            
+            processes.push(process);
+            processCounter++;
+            
+            // Clear input fields
+            document.getElementById('processName').value = '';
+            document.getElementById('arrivalTime').value = '';
+            document.getElementById('burstTime').value = '';
+            
+            displayProcessTable();
+        }
+        
+        function displayProcessTable() {
+            if (processes.length === 0) {
+                document.getElementById('processTableContainer').innerHTML = '';
+                return;
+            }
+            
+            let tableHTML = `
+                <table class="process-table">
+                    <thead>
+                        <tr>
+                            <th>Process</th>
+                            <th>Arrival Time</th>
+                            <th>Burst Time</th>
+                            <th>Completion Time</th>
+                            <th>Waiting Time</th>
+                            <th>Turnaround Time</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            processes.forEach((process, index) => {
+                tableHTML += `
+                    <tr>
+                        <td>${process.name}</td>
+                        <td>${process.arrivalTime}</td>
+                        <td>${process.burstTime}</td>
+                        <td>${process.completionTime || '-'}</td>
+                        <td>${process.waitingTime || '-'}</td>
+                        <td>${process.turnaroundTime || '-'}</td>
+                        <td>
+                            <button class="btn btn-danger" style="padding: 5px 10px; font-size: 12px;" onclick="removeProcess(${index})">
+                                🗑️ Hapus
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            tableHTML += '</tbody></table>';
+            document.getElementById('processTableContainer').innerHTML = tableHTML;
+        }
+        
+        function removeProcess(index) {
+            processes.splice(index, 1);
+            displayProcessTable();
+            document.getElementById('ganttChart').innerHTML = '';
+            document.getElementById('results').innerHTML = '';
+        }
+        
+        function calculateSJF() {
+            if (processes.length === 0) {
+                alert('Tambahkan minimal satu process terlebih dahulu!');
+                return;
+            }
+            
+            // Reset nilai
+            processes.forEach(p => {
+                p.waitingTime = 0;
+                p.turnaroundTime = 0;
+                p.completionTime = 0;
+            });
+            
+            // Sort by arrival time first
+            let sortedProcesses = [...processes].sort((a, b) => a.arrivalTime - b.arrivalTime);
+            let completedProcesses = [];
+            let currentTime = 0;
+            let ganttChart = [];
+            
+            while (completedProcesses.length < sortedProcesses.length) {
+                // Get available processes at current time
+                let availableProcesses = sortedProcesses.filter(p => 
+                    p.arrivalTime <= currentTime && !completedProcesses.includes(p)
+                );
+                
+                if (availableProcesses.length === 0) {
+                    // No process available, move to next arrival time
+                    let nextArrival = Math.min(...sortedProcesses
+                        .filter(p => !completedProcesses.includes(p))
+                        .map(p => p.arrivalTime));
+                    currentTime = nextArrival;
+                    continue;
+                }
+                
+                // Select process with shortest burst time (SJF)
+                let shortestJob = availableProcesses.reduce((min, p) => 
+                    p.burstTime < min.burstTime ? p : min
+                );
+                
+                // Execute the process
+                shortestJob.completionTime = currentTime + shortestJob.burstTime;
+                shortestJob.turnaroundTime = shortestJob.completionTime - shortestJob.arrivalTime;
+                shortestJob.waitingTime = shortestJob.turnaroundTime - shortestJob.burstTime;
+                
+                // Add to Gantt chart
+                ganttChart.push({
+                    process: shortestJob.name,
+                    startTime: currentTime,
+                    endTime: shortestJob.completionTime,
+                    color: colors[shortestJob.id % colors.length]
+                });
+                
+                currentTime = shortestJob.completionTime;
+                completedProcesses.push(shortestJob);
+            }
+            
+            displayProcessTable();
+            displayGanttChart(ganttChart);
+            displayResults();
+        }
+        
+        function displayGanttChart(ganttChart) {
+            let ganttHTML = `
+                <div class="gantt-chart">
+                    <h3 class="gantt-title">📊 Gantt Chart</h3>
+                    <div class="gantt-container">
+            `;
+            
+            ganttChart.forEach(block => {
+                ganttHTML += `
+                    <div class="gantt-block" style="background-color: ${block.color}">
+                        <div>${block.process}</div>
+                        <div style="font-size: 0.8em; margin-top: 5px;">
+                            ${block.startTime} - ${block.endTime}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            ganttHTML += '</div></div>';
+            document.getElementById('ganttChart').innerHTML = ganttHTML;
+        }
+        
+        function displayResults() {
+            const totalWaitingTime = processes.reduce((sum, p) => sum + p.waitingTime, 0);
+            const totalTurnaroundTime = processes.reduce((sum, p) => sum + p.turnaroundTime, 0);
+            const avgWaitingTime = (totalWaitingTime / processes.length).toFixed(2);
+            const avgTurnaroundTime = (totalTurnaroundTime / processes.length).toFixed(2);
+            
+            const resultsHTML = `
+                <div class="results">
+                    <div class="result-card">
+                        <h4>⏱️ Total Waiting Time</h4>
+                        <div class="result-value">${totalWaitingTime}</div>
+                    </div>
+                    <div class="result-card">
+                        <h4>📊 Average Waiting Time</h4>
+                        <div class="result-value">${avgWaitingTime}</div>
+                    </div>
+                    <div class="result-card">
+                        <h4>🔄 Total Turnaround Time</h4>
+                        <div class="result-value">${totalTurnaroundTime}</div>
+                    </div>
+                    <div class="result-card">
+                        <h4>📈 Average Turnaround Time</h4>
+                        <div class="result-value">${avgTurnaroundTime}</div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('results').innerHTML = resultsHTML;
+        }
+        
+        function clearAll() {
+            if (confirm('Apakah Anda yakin ingin menghapus semua data?')) {
+                processes = [];
+                processCounter = 1;
+                document.getElementById('processTableContainer').innerHTML = '';
+                document.getElementById('ganttChart').innerHTML = '';
+                document.getElementById('results').innerHTML = '';
+                
+                // Clear input fields
+                document.getElementById('processName').value = '';
+                document.getElementById('arrivalTime').value = '';
+                document.getElementById('burstTime').value = '';
+            }
+        }
+        
+        // Add sample data
+        function addSampleData() {
+            const sampleProcesses = [
+                { name: 'P1', arrivalTime: 0, burstTime: 6 },
+                { name: 'P2', arrivalTime: 1, burstTime: 8 },
+                { name: 'P3', arrivalTime: 2, burstTime: 7 },
+                { name: 'P4', arrivalTime: 3, burstTime: 3 }
+            ];
+            
+            sampleProcesses.forEach(p => {
+                processes.push({
+                    id: processCounter++,
+                    name: p.name,
+                    arrivalTime: p.arrivalTime,
+                    burstTime: p.burstTime,
+                    waitingTime: 0,
+                    turnaroundTime: 0,
+                    completionTime: 0
+                });
+            });
+            
+            displayProcessTable();
+        }
+        
+        // Add Enter key support for inputs
+        document.addEventListener('DOMContentLoaded', function() {
+            const inputs = ['processName', 'arrivalTime', 'burstTime'];
+            inputs.forEach(id => {
+                document.getElementById(id).addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        addProcess();
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
